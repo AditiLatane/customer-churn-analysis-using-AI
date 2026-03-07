@@ -1,0 +1,1657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Telco Customer Churn Analysis Report</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --crimson: #C0392B;
+    --crimson-light: #E74C3C;
+    --navy: #1A2340;
+    --navy-mid: #243058;
+    --gold: #D4A843;
+    --slate: #4A5568;
+    --fog: #F7F8FC;
+    --white: #FFFFFF;
+    --border: #E2E8F0;
+    --text: #2D3748;
+    --muted: #718096;
+    --success: #27AE60;
+    --warn: #E67E22;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--fog);
+    color: var(--text);
+    line-height: 1.7;
+  }
+
+  /* ── COVER ── */
+  .cover {
+    background: var(--navy);
+    color: var(--white);
+    min-height: 320px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 60px 80px;
+    position: relative;
+    overflow: hidden;
+  }
+  .cover::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 340px; height: 340px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(192,57,43,0.35) 0%, transparent 70%);
+  }
+  .cover::after {
+    content: '';
+    position: absolute;
+    bottom: -40px; left: 200px;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(212,168,67,0.2) 0%, transparent 70%);
+  }
+  .cover-tag {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 16px;
+  }
+  .cover h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 42px;
+    font-weight: 900;
+    line-height: 1.15;
+    margin-bottom: 20px;
+    max-width: 700px;
+  }
+  .cover h1 span { color: var(--crimson-light); }
+  .cover-meta {
+    display: flex;
+    gap: 40px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.65);
+    flex-wrap: wrap;
+  }
+  .cover-meta strong { color: var(--white); }
+
+  /* ── KPI STRIP ── */
+  .kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    background: var(--crimson);
+  }
+  .kpi-card {
+    padding: 28px 32px;
+    border-right: 1px solid rgba(255,255,255,0.15);
+    text-align: center;
+    color: var(--white);
+  }
+  .kpi-card:last-child { border-right: none; }
+  .kpi-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 38px;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .kpi-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    opacity: 0.85;
+  }
+
+  /* ── CONTENT WRAPPER (legacy – kept for inner element styles) ── */
+  .content {
+    /* layout now controlled by .content-area inside .page-shell */
+  }
+
+  /* ── SECTION HEADERS ── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 32px;
+    margin-top: 56px;
+  }
+  .section-header:first-child { margin-top: 0; }
+  .section-num {
+    width: 40px; height: 40px;
+    background: var(--navy);
+    color: var(--white);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .section-header h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--navy);
+  }
+
+  /* ── PROSE ── */
+  .prose {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 32px 36px;
+    margin-bottom: 28px;
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+  .prose p { margin-bottom: 16px; font-size: 15px; color: var(--text); }
+  .prose p:last-child { margin-bottom: 0; }
+  .prose strong { color: var(--navy); }
+
+  /* ── CHART GRID ── */
+  .chart-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 28px;
+  }
+  .chart-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin-bottom: 28px;
+  }
+  .chart-card {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 28px;
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+  .chart-card.full { grid-column: 1 / -1; }
+  .chart-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 6px;
+  }
+  .chart-subtitle {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 20px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+  }
+  .chart-wrap { position: relative; }
+
+  /* ── INSIGHT CALLOUT ── */
+  .insight {
+    background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 100%);
+    color: var(--white);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-top: 16px;
+    font-size: 13.5px;
+    border-left: 4px solid var(--gold);
+  }
+  .insight strong { color: var(--gold); }
+
+  /* ── RISK SEGMENTS TABLE ── */
+  .segment-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  .segment-table th {
+    background: var(--navy);
+    color: var(--white);
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .segment-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  .segment-table tr:last-child td { border-bottom: none; }
+  .segment-table tr:nth-child(even) td { background: var(--fog); }
+  .risk-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .risk-high { background: #FDECEA; color: var(--crimson); }
+  .risk-medium { background: #FEF3E2; color: var(--warn); }
+  .risk-low { background: #E9F7EF; color: var(--success); }
+
+  .churn-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .churn-bar-fill {
+    height: 8px;
+    border-radius: 4px;
+    background: var(--crimson);
+  }
+  .churn-bar-pct { font-weight: 600; font-size: 13px; color: var(--crimson); }
+
+  /* ── STRATEGY CARDS ── */
+  .strategy-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-bottom: 28px;
+  }
+  .strategy-card {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 24px;
+    border: 1px solid var(--border);
+    border-top: 4px solid var(--navy);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+  .strategy-card.accent { border-top-color: var(--crimson); }
+  .strategy-card.gold { border-top-color: var(--gold); }
+  .strategy-icon {
+    font-size: 28px;
+    margin-bottom: 12px;
+  }
+  .strategy-card h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 10px;
+  }
+  .strategy-card p { font-size: 13.5px; color: var(--slate); line-height: 1.6; }
+  .strategy-tag {
+    margin-top: 14px;
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* ── KPI RECOMMENDATION TABLE ── */
+  .kpi-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+  }
+  .kpi-table th {
+    background: var(--navy);
+    color: var(--white);
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .kpi-table td {
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .kpi-table tr:last-child td { border-bottom: none; }
+  .kpi-table tr:nth-child(even) td { background: var(--fog); }
+  .cat-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .cat-churn { background:#FDECEA; color: var(--crimson); }
+  .cat-revenue { background:#FEF3E2; color: var(--warn); }
+  .cat-service { background:#E8F4FD; color: #2980B9; }
+  .cat-ops { background:#E9F7EF; color: var(--success); }
+
+  /* ── FOOTER ── */
+  .report-footer {
+    background: var(--navy);
+    color: rgba(255,255,255,0.5);
+    text-align: center;
+    padding: 24px;
+    font-size: 12px;
+    margin-top: 60px;
+    letter-spacing: 0.5px;
+  }
+  .report-footer strong { color: var(--gold); }
+
+  @media (max-width: 768px) {
+    .kpi-strip { grid-template-columns: repeat(2, 1fr); }
+    .chart-grid-2, .chart-grid-3, .strategy-grid { grid-template-columns: 1fr; }
+    .cover { padding: 40px 28px; }
+    .cover h1 { font-size: 28px; }
+    .content { padding: 40px 20px; }
+  }
+
+  /* page-break hint for printing */
+  .page-break { page-break-before: always; }
+
+  /* ── SMOOTH SCROLL ── */
+  html { scroll-behavior: smooth; }
+
+  /* ── LAYOUT SHELL ── */
+  .page-shell {
+    display: flex;
+    align-items: flex-start;
+    max-width: 1340px;
+    margin: 0 auto;
+  }
+
+  /* ── TOC SIDEBAR ── */
+  .toc-sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 24px;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    padding: 0 0 40px 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .toc-sidebar::-webkit-scrollbar { width: 4px; }
+  .toc-sidebar::-webkit-scrollbar-track { background: transparent; }
+  .toc-sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .toc-box {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 0 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    overflow: hidden;
+  }
+  .toc-heading {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 0 20px 14px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .toc-heading::before {
+    content: '';
+    display: inline-block;
+    width: 10px; height: 10px;
+    background: var(--crimson);
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  /* top-level items */
+  .toc-item {
+    display: block;
+    padding: 7px 20px;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--slate);
+    text-decoration: none;
+    border-left: 3px solid transparent;
+    transition: all 0.15s;
+    line-height: 1.4;
+  }
+  .toc-item:hover {
+    color: var(--navy);
+    background: var(--fog);
+    border-left-color: var(--border);
+  }
+  .toc-item.active {
+    color: var(--crimson);
+    font-weight: 700;
+    background: #FEF0EF;
+    border-left-color: var(--crimson);
+  }
+
+  /* sub-items (indented) */
+  .toc-sub {
+    display: block;
+    padding: 5px 20px 5px 32px;
+    font-size: 11.5px;
+    font-weight: 400;
+    color: var(--muted);
+    text-decoration: none;
+    border-left: 3px solid transparent;
+    transition: all 0.15s;
+    line-height: 1.4;
+    position: relative;
+  }
+  .toc-sub::before {
+    content: '–';
+    position: absolute;
+    left: 22px;
+    color: var(--border);
+  }
+  .toc-sub:hover {
+    color: var(--navy);
+    background: var(--fog);
+  }
+  .toc-sub.active {
+    color: var(--crimson);
+    font-weight: 600;
+    background: #FEF0EF;
+    border-left-color: var(--crimson);
+  }
+
+  /* group label (non-link) */
+  .toc-group-label {
+    padding: 10px 20px 4px;
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--navy);
+  }
+
+  .toc-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 8px 16px;
+  }
+
+  /* ── BACK TO TOP ── */
+  .back-top {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    width: 40px; height: 40px;
+    background: var(--navy);
+    color: var(--white);
+    border: none;
+    border-radius: 50%;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all 0.2s;
+    z-index: 999;
+  }
+  .back-top.visible { opacity: 1; transform: translateY(0); }
+  .back-top:hover { background: var(--crimson); }
+
+  /* ── SECTION ANCHOR OFFSET (for sticky toc) ── */
+  .section-anchor {
+    display: block;
+    height: 0;
+    visibility: hidden;
+    scroll-margin-top: 32px;
+  }
+
+  /* ── CONTENT AREA INSIDE SHELL ── */
+  .content-area {
+    flex: 1;
+    min-width: 0;
+    padding: 60px 40px 60px 48px;
+  }
+
+  @media (max-width: 960px) {
+    .toc-sidebar { display: none; }
+    .content-area { padding: 40px 20px; }
+  }
+
+  /* ── INLINE TOC BLOCK ── */
+  .inline-toc {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 36px 40px 32px;
+    margin-bottom: 52px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    position: relative;
+    overflow: hidden;
+  }
+  .inline-toc::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 5px;
+    background: linear-gradient(90deg, var(--crimson) 0%, var(--navy) 50%, var(--gold) 100%);
+  }
+  .inline-toc-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 28px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  .inline-toc-icon {
+    width: 44px; height: 44px;
+    background: var(--navy);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  .inline-toc-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--navy);
+  }
+  .inline-toc-subtitle {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  .inline-toc-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 48px;
+  }
+  .itoc-section { display: contents; }
+  .itoc-main-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 10px;
+    border-radius: 7px;
+    text-decoration: none;
+    color: var(--navy);
+    font-weight: 600;
+    font-size: 13.5px;
+    transition: background 0.15s, color 0.15s;
+    border-left: 3px solid transparent;
+  }
+  .itoc-main-link:hover {
+    background: #EEF0F8;
+    border-left-color: var(--navy);
+    color: var(--crimson);
+  }
+  .itoc-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px; height: 22px;
+    min-width: 22px;
+    background: var(--navy);
+    color: var(--white);
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: 'Playfair Display', serif;
+    transition: background 0.15s;
+  }
+  .itoc-main-link:hover .itoc-num { background: var(--crimson); }
+  .itoc-sub-group {
+    padding: 0 0 6px 42px;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+  .itoc-sub-link {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 3px 8px 3px 16px;
+    border-radius: 5px;
+    text-decoration: none;
+    color: var(--muted);
+    font-size: 12px;
+    transition: background 0.12s, color 0.12s;
+    position: relative;
+  }
+  .itoc-sub-link::before {
+    content: '–';
+    position: absolute;
+    left: 5px;
+    color: var(--border);
+    font-size: 12px;
+  }
+  .itoc-sub-link:hover { background: #FEF0EF; color: var(--crimson); }
+  .itoc-sub-link:hover::before { color: var(--crimson-light); }
+  .itoc-col-divider {
+    grid-column: 1 / -1;
+    height: 1px;
+    background: var(--border);
+    margin: 6px 0;
+  }
+  .itoc-col-label {
+    grid-column: 1 / -1;
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 1.8px;
+    text-transform: uppercase;
+    color: var(--navy);
+    padding: 8px 10px 2px;
+    opacity: 0.6;
+  }
+  @media (max-width: 768px) {
+    .inline-toc-body { grid-template-columns: 1fr; }
+    .inline-toc { padding: 24px 20px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══ COVER ═══ -->
+<div class="cover">
+  <div class="cover-tag">Confidential · Strategic Analysis</div>
+  <h1>Telco Customer <span>Churn Analysis</span><br/>& Retention Strategy</h1>
+  <div class="cover-meta">
+    <div><strong>Dataset</strong> IBM Telco Customer Churn</div>
+    <div><strong>Customers Analysed</strong> 7,043</div>
+    <div><strong>Period</strong> Q3 California Operations</div>
+    <div><strong>Prepared</strong> March 2026</div>
+  </div>
+</div>
+
+<!-- ═══ KPI STRIP ═══ -->
+<div class="kpi-strip">
+  <div class="kpi-card">
+    <div class="kpi-num">26.5%</div>
+    <div class="kpi-label">Overall Churn Rate</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-num">1,869</div>
+    <div class="kpi-label">Customers Churned</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-num">$74.44</div>
+    <div class="kpi-label">Avg Monthly Charge (Churned)</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-num">$139K+</div>
+    <div class="kpi-label">Est. Monthly Revenue at Risk</div>
+  </div>
+</div>
+
+<!-- ═══ BACK TO TOP ═══ -->
+<button class="back-top" id="backTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Back to top">↑</button>
+
+<!-- ═══ PAGE SHELL ═══ -->
+<div class="page-shell">
+
+<!-- ── TOC SIDEBAR ── -->
+<nav class="toc-sidebar" id="tocSidebar" aria-label="Table of contents">
+  <div class="toc-box">
+    <div class="toc-heading">Contents</div>
+
+    <a href="#sec-summary"    class="toc-item" data-sec="sec-summary">1 · Executive Summary</a>
+
+    <div class="toc-divider"></div>
+    <div class="toc-group-label">Churn Drivers</div>
+    <a href="#sec-contract"   class="toc-item" data-sec="sec-contract">2 · Contract Type</a>
+      <a href="#sec-contract-rate" class="toc-sub" data-sec="sec-contract-rate">Churn rate by contract</a>
+      <a href="#sec-contract-dist" class="toc-sub" data-sec="sec-contract-dist">Customer distribution</a>
+    <a href="#sec-tenure"     class="toc-item" data-sec="sec-tenure">3 · Customer Tenure</a>
+      <a href="#sec-tenure-band"   class="toc-sub" data-sec="sec-tenure-band">Churn rate by tenure band</a>
+    <a href="#sec-internet"   class="toc-item" data-sec="sec-internet">4 · Internet Service</a>
+      <a href="#sec-internet-type" class="toc-sub" data-sec="sec-internet-type">Service type vs churn</a>
+      <a href="#sec-vas"           class="toc-sub" data-sec="sec-vas">Value-added services</a>
+    <a href="#sec-payment"    class="toc-item" data-sec="sec-payment">5 · Payment Method</a>
+      <a href="#sec-payment-method" class="toc-sub" data-sec="sec-payment-method">Payment method vs churn</a>
+      <a href="#sec-charges"        class="toc-sub" data-sec="sec-charges">Monthly charges</a>
+    <a href="#sec-demo"       class="toc-item" data-sec="sec-demo">6 · Demographics</a>
+      <a href="#sec-senior"         class="toc-sub" data-sec="sec-senior">Senior citizens</a>
+      <a href="#sec-partner"        class="toc-sub" data-sec="sec-partner">Partner &amp; dependents</a>
+
+    <div class="toc-divider"></div>
+    <a href="#sec-segments"   class="toc-item" data-sec="sec-segments">7 · Risk Segments</a>
+      <a href="#sec-seg-matrix"     class="toc-sub" data-sec="sec-seg-matrix">Segment risk matrix</a>
+    <a href="#sec-reasons"    class="toc-item" data-sec="sec-reasons">8 · Churn Reasons</a>
+      <a href="#sec-reasons-chart"  class="toc-sub" data-sec="sec-reasons-chart">Primary categories</a>
+      <a href="#sec-radar"          class="toc-sub" data-sec="sec-radar">Risk factor radar</a>
+
+    <div class="toc-divider"></div>
+    <a href="#sec-strategy"   class="toc-item" data-sec="sec-strategy">9 · Retention Strategies</a>
+      <a href="#sec-strat-contract" class="toc-sub" data-sec="sec-strat-contract">Contract migration</a>
+      <a href="#sec-strat-bundle"   class="toc-sub" data-sec="sec-strat-bundle">Security bundle</a>
+      <a href="#sec-strat-autopay"  class="toc-sub" data-sec="sec-strat-autopay">Auto-pay incentive</a>
+      <a href="#sec-strat-onboard"  class="toc-sub" data-sec="sec-strat-onboard">Onboarding programme</a>
+      <a href="#sec-strat-senior"   class="toc-sub" data-sec="sec-strat-senior">Senior care</a>
+      <a href="#sec-strat-ml"       class="toc-sub" data-sec="sec-strat-ml">Churn prediction model</a>
+    <a href="#sec-kpis"        class="toc-item" data-sec="sec-kpis">10 · Power BI KPIs</a>
+    <a href="#sec-conclusions" class="toc-item" data-sec="sec-conclusions">11 · Conclusions</a>
+  </div>
+</nav>
+
+<!-- ── MAIN CONTENT AREA ── -->
+<div class="content-area">
+<div class="content">
+
+  <!-- ═══ INLINE TABLE OF CONTENTS ═══ -->
+  <div class="inline-toc">
+    <div class="inline-toc-header">
+      <div class="inline-toc-icon">📑</div>
+      <div>
+        <div class="inline-toc-title">Table of Contents</div>
+        <div class="inline-toc-subtitle">11 sections · Click any item to jump directly to that section</div>
+      </div>
+    </div>
+
+    <div class="inline-toc-body">
+
+      <!-- Left column -->
+      <div>
+        <a href="#sec-summary" class="itoc-main-link"><span class="itoc-num">1</span> Executive Summary</a>
+
+        <div class="itoc-col-label" style="grid-column:unset">Churn Drivers</div>
+
+        <a href="#sec-contract" class="itoc-main-link"><span class="itoc-num">2</span> Contract Type</a>
+        <div class="itoc-sub-group">
+          <a href="#sec-contract-rate" class="itoc-sub-link">Churn rate by contract</a>
+          <a href="#sec-contract-dist" class="itoc-sub-link">Customer distribution</a>
+        </div>
+
+        <a href="#sec-tenure" class="itoc-main-link"><span class="itoc-num">3</span> Customer Tenure</a>
+        <div class="itoc-sub-group">
+          <a href="#sec-tenure-band" class="itoc-sub-link">Churn rate by tenure band</a>
+        </div>
+
+        <a href="#sec-internet" class="itoc-main-link"><span class="itoc-num">4</span> Internet Service Type</a>
+        <div class="itoc-sub-group">
+          <a href="#sec-internet-type" class="itoc-sub-link">Service type vs churn rate</a>
+          <a href="#sec-vas" class="itoc-sub-link">Value-added services impact</a>
+        </div>
+
+        <a href="#sec-payment" class="itoc-main-link"><span class="itoc-num">5</span> Payment Method</a>
+        <div class="itoc-sub-group">
+          <a href="#sec-payment-method" class="itoc-sub-link">Payment method vs churn</a>
+          <a href="#sec-charges" class="itoc-sub-link">Monthly charges distribution</a>
+        </div>
+
+        <a href="#sec-demo" class="itoc-main-link"><span class="itoc-num">6</span> Demographics</a>
+        <div class="itoc-sub-group">
+          <a href="#sec-senior" class="itoc-sub-link">Senior citizen churn</a>
+          <a href="#sec-partner" class="itoc-sub-link">Partner &amp; dependents</a>
+        </div>
+      </div>
+
+      <!-- Right column -->
+      <div>
+        <a href="#sec-segments" class="itoc-main-link"><span class="itoc-num">7</span> High-Risk Customer Segments</a>
+        <div class="itoc-sub-group">
+          <a href="#sec-seg-matrix" class="itoc-sub-link">Segment risk matrix</a>
+        </div>
+
+        <a href="#sec-reasons" class="itoc-main-link"><span class="itoc-num">8</span> Churn Reason Analysis</a>
+        <div class="itoc-sub-group">
+          <a href="#sec-reasons-chart" class="itoc-sub-link">Primary churn categories</a>
+          <a href="#sec-radar" class="itoc-sub-link">Composite risk radar</a>
+        </div>
+
+        <a href="#sec-strategy" class="itoc-main-link"><span class="itoc-num">9</span> Retention Strategies</a>
+        <div class="itoc-sub-group">
+          <a href="#sec-strat-contract" class="itoc-sub-link">Contract migration campaign</a>
+          <a href="#sec-strat-bundle" class="itoc-sub-link">Security &amp; support bundle</a>
+          <a href="#sec-strat-autopay" class="itoc-sub-link">Auto-pay incentive</a>
+          <a href="#sec-strat-onboard" class="itoc-sub-link">30/60/90 day onboarding</a>
+          <a href="#sec-strat-senior" class="itoc-sub-link">Senior care programme</a>
+          <a href="#sec-strat-ml" class="itoc-sub-link">Churn prediction model</a>
+        </div>
+
+        <a href="#sec-kpis" class="itoc-main-link"><span class="itoc-num">10</span> Power BI KPIs</a>
+        <div class="itoc-sub-group">
+          <a href="#sec-kpis" class="itoc-sub-link">Recommended KPI &amp; metric table</a>
+        </div>
+
+        <a href="#sec-conclusions" class="itoc-main-link"><span class="itoc-num">11</span> Conclusions &amp; Recommendations</a>
+        <div class="itoc-sub-group">
+          <a href="#sec-conclusions" class="itoc-sub-link">6 prioritised action items</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 1. EXECUTIVE SUMMARY -->
+  <span id="sec-summary" class="section-anchor"></span>
+  <div class="section-header">
+    <div class="section-num">1</div>
+    <h2>Executive Summary</h2>
+  </div>
+  <div class="prose">
+    <p>This report presents a data-driven analysis of customer churn across IBM's fictional Telco dataset covering <strong>7,043 customers</strong> in California. With an overall churn rate of <strong>26.5%</strong>, the business is losing roughly one in four customers — representing a critical revenue and growth risk.</p>
+    <p>The analysis reveals that churn is not random. It is concentrated within identifiable, predictable customer segments. <strong>Contract type, tenure, internet service type, payment method, and the absence of value-added services</strong> emerge as the most powerful predictors of churn. These findings create a clear roadmap for targeted, proactive retention interventions.</p>
+    <p>Specifically, <strong>month-to-month contract holders</strong> churn at 42.7% — more than 15× the rate of two-year contract customers. <strong>Fiber optic subscribers paying high monthly charges</strong> within their first 12 months represent the single highest-risk cohort. Addressing this segment alone could meaningfully reduce overall churn and protect monthly recurring revenue.</p>
+  </div>
+
+  <!-- 2. CHURN RATE BY CONTRACT TYPE -->
+  <span id="sec-contract" class="section-anchor"></span>
+  <div class="section-header">
+    <div class="section-num">2</div>
+    <h2>Key Churn Driver #1 — Contract Type</h2>
+  </div>
+  <div class="chart-grid-2">
+    <div class="chart-card">
+      <span id="sec-contract-rate" class="section-anchor"></span>
+      <div class="chart-title">Churn Rate by Contract Type</div>
+      <div class="chart-subtitle">Month-to-month customers are the highest-risk segment</div>
+      <div class="chart-wrap"><canvas id="contractChart" height="220"></canvas></div>
+      <div class="insight">
+        <strong>Key Finding:</strong> Month-to-month customers churn at <strong>42.7%</strong> vs 11.3% (1-year) and just 2.8% (2-year). Migrating even 15% of month-to-month customers to annual contracts could prevent ~190 churns per cycle.
+      </div>
+    </div>
+    <div class="chart-card">
+      <span id="sec-contract-dist" class="section-anchor"></span>
+      <div class="chart-title">Customer Distribution by Contract</div>
+      <div class="chart-subtitle">Volume context — majority are on flexible contracts</div>
+      <div class="chart-wrap"><canvas id="contractDistChart" height="220"></canvas></div>
+    </div>
+  </div>
+
+  <!-- 3. TENURE -->
+  <span id="sec-tenure" class="section-anchor"></span>
+  <div class="section-header">
+    <div class="section-num">3</div>
+    <h2>Key Churn Driver #2 — Customer Tenure</h2>
+  </div>
+  <div class="chart-grid-2">
+    <div class="chart-card full">
+      <span id="sec-tenure-band" class="section-anchor"></span>
+      <div class="chart-title">Churn Rate by Tenure Band (Months)</div>
+      <div class="chart-subtitle">Early-lifecycle customers are disproportionately at risk — churn drops sharply after 24 months</div>
+      <div class="chart-wrap"><canvas id="tenureChart" height="180"></canvas></div>
+      <div class="insight">
+        <strong>Key Finding:</strong> Nearly <strong>47.7%</strong> of customers who have been with the company for 0–12 months will churn. By contrast, customers who stay beyond 48 months churn at only <strong>7%</strong>. The first year is the critical retention window — intervention at onboarding is most impactful.
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. INTERNET SERVICE -->
+  <span id="sec-internet" class="section-anchor"></span>
+  <div class="section-header">
+    <div class="section-num">4</div>
+    <h2>Key Churn Driver #3 — Internet Service Type</h2>
+  </div>
+  <div class="chart-grid-2">
+    <div class="chart-card">
+      <span id="sec-internet-type" class="section-anchor"></span>
+      <div class="chart-title">Churn Rate by Internet Service</div>
+      <div class="chart-subtitle">Fiber optic customers churn at nearly double the rate of DSL</div>
+      <div class="chart-wrap"><canvas id="internetChart" height="220"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <span id="sec-vas" class="section-anchor"></span>
+      <div class="chart-title">Value-Added Service Adoption vs Churn</div>
+      <div class="chart-subtitle">Customers without protective services churn significantly more</div>
+      <div class="chart-wrap"><canvas id="servicesChart" height="220"></canvas></div>
+      <div class="insight">
+        <strong>Key Finding:</strong> Fiber optic customers — who pay significantly higher monthly charges — churn at <strong>41.9%</strong>. This suggests a perceived value gap: customers pay premium prices but don't feel they receive premium value. Adding <strong>Online Security</strong> reduces churn from 41.8% to 14.6%.
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. PAYMENT METHOD -->
+  <span id="sec-payment" class="section-anchor"></span>
+  <div class="section-header">
+    <div class="section-num">5</div>
+    <h2>Key Churn Driver #4 — Payment Method</h2>
+  </div>
+  <div class="chart-grid-2">
+    <div class="chart-card">
+      <span id="sec-payment-method" class="section-anchor"></span>
+      <div class="chart-title">Churn Rate by Payment Method</div>
+      <div class="chart-subtitle">Electronic check users show markedly higher churn propensity</div>
+      <div class="chart-wrap"><canvas id="paymentChart" height="230"></canvas></div>
+      <div class="insight">
+        <strong>Key Finding:</strong> Customers paying by <strong>electronic check</strong> churn at 45.3% — nearly 3× the rate of credit card users (15.2%). Manual payment methods act as a proxy for lower engagement and commitment, making these customers prime candidates for auto-pay migration campaigns.
+      </div>
+    </div>
+    <div class="chart-card">
+      <span id="sec-charges" class="section-anchor"></span>
+      <div class="chart-title">Monthly Charges Distribution</div>
+      <div class="chart-subtitle">Churned customers carry higher average monthly bills</div>
+      <div class="chart-wrap"><canvas id="chargesChart" height="230"></canvas></div>
+    </div>
+  </div>
+
+  <!-- 6. DEMOGRAPHICS -->
+  <span id="sec-demo" class="section-anchor"></span>
+  <div class="section-header">
+    <div class="section-num">6</div>
+    <h2>Key Churn Driver #5 — Demographics</h2>
+  </div>
+  <div class="chart-grid-3">
+    <div class="chart-card">
+      <span id="sec-senior" class="section-anchor"></span>
+      <div class="chart-title">Senior Citizen Churn</div>
+      <div class="chart-subtitle">Age as a churn predictor</div>
+      <div class="chart-wrap"><canvas id="seniorChart" height="200"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <span id="sec-partner" class="section-anchor"></span>
+      <div class="chart-title">Partner Status &amp; Churn</div>
+      <div class="chart-subtitle">Solo customers churn more</div>
+      <div class="chart-wrap"><canvas id="partnerChart" height="200"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Dependents & Churn</div>
+      <div class="chart-subtitle">Family ties reduce churn risk</div>
+      <div class="chart-wrap"><canvas id="dependentsChart" height="200"></canvas></div>
+    </div>
+  </div>
+  <div class="prose">
+    <p><strong>Senior citizens</strong> churn at 41.7% compared to 23.7% for non-seniors — reflecting potentially lower digital literacy, less awareness of migration process complexity, or more sensitivity to price increases. <strong>Customers without a partner or dependents</strong> also churn significantly more, suggesting that household switching costs (bundled plans, shared accounts) act as natural retention anchors. The business should consider family and group plan incentives as a structural retention mechanism.</p>
+  </div>
+
+  <!-- 7. HIGH-RISK SEGMENTS -->
+  <span id="sec-segments" class="section-anchor"></span>
+  <div class="section-header">
+    <div class="section-num">7</div>
+    <h2>High-Risk Customer Segments</h2>
+  </div>
+  <div class="chart-card" style="margin-bottom:28px">
+    <span id="sec-seg-matrix" class="section-anchor"></span>
+    <div class="chart-title">Churn Risk Segment Matrix</div>
+    <div class="chart-subtitle" style="margin-bottom:20px">Prioritised by estimated churn rate and customer volume</div>
+    <table class="segment-table">
+      <thead>
+        <tr>
+          <th>Segment</th>
+          <th>Defining Characteristics</th>
+          <th>Est. Size</th>
+          <th>Churn Rate</th>
+          <th>Risk Level</th>
+          <th>Revenue Impact</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Early Fiber Switchers</strong></td>
+          <td>Fiber optic · Month-to-month · Tenure &lt;12 mo</td>
+          <td>~620</td>
+          <td>
+            <div class="churn-bar">
+              <div class="churn-bar-fill" style="width:62px"></div>
+              <span class="churn-bar-pct">~62%</span>
+            </div>
+          </td>
+          <td><span class="risk-badge risk-high">Critical</span></td>
+          <td>$46K+/mo</td>
+        </tr>
+        <tr>
+          <td><strong>Unprotected High Spenders</strong></td>
+          <td>Monthly charge &gt;$70 · No security/support services</td>
+          <td>~940</td>
+          <td>
+            <div class="churn-bar">
+              <div class="churn-bar-fill" style="width:52px"></div>
+              <span class="churn-bar-pct">~52%</span>
+            </div>
+          </td>
+          <td><span class="risk-badge risk-high">Critical</span></td>
+          <td>$65K+/mo</td>
+        </tr>
+        <tr>
+          <td><strong>Senior Solo Customers</strong></td>
+          <td>Senior citizen · No partner · No dependents</td>
+          <td>~480</td>
+          <td>
+            <div class="churn-bar">
+              <div class="churn-bar-fill" style="width:47px"></div>
+              <span class="churn-bar-pct">~47%</span>
+            </div>
+          </td>
+          <td><span class="risk-badge risk-high">High</span></td>
+          <td>$28K+/mo</td>
+        </tr>
+        <tr>
+          <td><strong>E-Check Month-to-Month</strong></td>
+          <td>Electronic check · Month-to-month contract</td>
+          <td>~1,100</td>
+          <td>
+            <div class="churn-bar">
+              <div class="churn-bar-fill" style="width:48px"></div>
+              <span class="churn-bar-pct">~48%</span>
+            </div>
+          </td>
+          <td><span class="risk-badge risk-high">High</span></td>
+          <td>$82K+/mo</td>
+        </tr>
+        <tr>
+          <td><strong>Mid-Tenure Fiber DSL Mix</strong></td>
+          <td>Tenure 13–24 mo · DSL or Fiber · Paperless billing</td>
+          <td>~780</td>
+          <td>
+            <div class="churn-bar">
+              <div class="churn-bar-fill" style="width:30px"></div>
+              <span class="churn-bar-pct">~30%</span>
+            </div>
+          </td>
+          <td><span class="risk-badge risk-medium">Medium</span></td>
+          <td>$35K+/mo</td>
+        </tr>
+        <tr>
+          <td><strong>Loyal Long-Term Subscribers</strong></td>
+          <td>Tenure &gt;48 mo · Annual/2-year contract</td>
+          <td>~2,100</td>
+          <td>
+            <div class="churn-bar">
+              <div class="churn-bar-fill" style="width:8px; background:#27AE60"></div>
+              <span class="churn-bar-pct" style="color:#27AE60">~7%</span>
+            </div>
+          </td>
+          <td><span class="risk-badge risk-low">Low</span></td>
+          <td>—</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 8. CHURN REASONS BREAKDOWN -->
+  <span id="sec-reasons" class="section-anchor"></span>
+  <div class="section-header">
+    <div class="section-num">8</div>
+    <h2>Churn Reason Analysis</h2>
+  </div>
+  <div class="chart-grid-2">
+    <div class="chart-card">
+      <span id="sec-reasons-chart" class="section-anchor"></span>
+      <div class="chart-title">Primary Churn Categories</div>
+      <div class="chart-subtitle">Why customers actually leave</div>
+      <div class="chart-wrap"><canvas id="churnReasonChart" height="240"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <span id="sec-radar" class="section-anchor"></span>
+      <div class="chart-title">Churn vs Retention — Composite Risk Drivers</div>
+      <div class="chart-subtitle">Radar view of contributing factor intensity</div>
+      <div class="chart-wrap"><canvas id="radarChart" height="240"></canvas></div>
+    </div>
+  </div>
+  <div class="insight" style="margin-bottom:28px">
+    <strong>Top Churn Reason:</strong> Competitor offers — better devices or deals — account for the largest share of churn (~45%). This is followed by dissatisfaction with attitude/service quality and pricing concerns. These categories demand both a <strong>competitive pricing review</strong> and <strong>service quality improvement programme</strong>.
+  </div>
+
+  <!-- 9. RETENTION STRATEGIES -->
+  <span id="sec-strategy" class="section-anchor"></span>
+  <div class="section-header">
+    <div class="section-num">9</div>
+    <h2>Retention Strategies</h2>
+  </div>
+  <div class="strategy-grid">
+    <div class="strategy-card accent">
+      <span id="sec-strat-contract" class="section-anchor"></span>
+      <div class="strategy-icon">📋</div>
+      <h3>Contract Migration Campaign</h3>
+      <p>Offer month-to-month customers a discounted rate (10–15%) to switch to 1-year or 2-year contracts. Use predictive scores to prioritise high-risk accounts first. Consider a 30-day free trial of annual benefits.</p>
+      <span class="strategy-tag">🎯 Target: M2M Customers · Expected Lift: High</span>
+    </div>
+    <div class="strategy-card">
+      <span id="sec-strat-bundle" class="section-anchor"></span>
+      <div class="strategy-icon">🛡️</div>
+      <h3>Security &amp; Support Bundle</h3>
+      <p>Bundle Online Security + Tech Support at no extra cost for the first 3 months for new Fiber optic customers. This closes the perceived value gap and reduces churn from ~42% to ~15% in the segment.</p>
+      <span class="strategy-tag">🎯 Target: Fiber Optic New Customers · Expected Lift: Very High</span>
+    </div>
+    <div class="strategy-card gold">
+      <span id="sec-strat-autopay" class="section-anchor"></span>
+      <div class="strategy-icon">💳</div>
+      <h3>Auto-Pay Incentive</h3>
+      <p>Offer $5/month bill credit for customers who switch from electronic check to auto-pay (bank transfer or credit card). Reduces payment friction and correlates with 30-point lower churn rate.</p>
+      <span class="strategy-tag">🎯 Target: E-Check Users · Expected Lift: Medium</span>
+    </div>
+    <div class="strategy-card">
+      <span id="sec-strat-onboard" class="section-anchor"></span>
+      <div class="strategy-icon">🌱</div>
+      <h3>30/60/90 Day Onboarding</h3>
+      <p>Deploy a structured check-in programme for all new customers: welcome call at day 7, satisfaction survey at day 30, personalised plan review at day 60, loyalty reward at day 90. Addresses the early-lifecycle churn cliff.</p>
+      <span class="strategy-tag">🎯 Target: Tenure &lt;12 Months · Expected Lift: High</span>
+    </div>
+    <div class="strategy-card accent">
+      <span id="sec-strat-senior" class="section-anchor"></span>
+      <div class="strategy-icon">👴</div>
+      <h3>Senior Care Programme</h3>
+      <p>Dedicated support line for senior customers, simplified billing, in-home tech assistance, and loyalty pricing that doesn't increase with market adjustments. Pair with a "family plan" referral incentive.</p>
+      <span class="strategy-tag">🎯 Target: Senior Citizens · Expected Lift: Medium</span>
+    </div>
+    <div class="strategy-card gold">
+      <span id="sec-strat-ml" class="section-anchor"></span>
+      <div class="strategy-icon">📊</div>
+      <h3>Churn Prediction Score</h3>
+      <p>Deploy a real-time ML churn propensity score (gradient boosted classifier ~80% accuracy) for every customer. Flag high-risk accounts weekly in CRM for proactive outreach before they initiate cancellation.</p>
+      <span class="strategy-tag">🎯 Target: All Segments · Expected Lift: Highest ROI</span>
+    </div>
+  </div>
+
+  <!-- 10. POWERBI KPIs -->
+  <span id="sec-kpis" class="section-anchor"></span>
+  <div class="section-header">
+    <div class="section-num">10</div>
+    <h2>Recommended Power BI Dashboard KPIs</h2>
+  </div>
+  <div class="chart-card" style="margin-bottom:28px">
+    <div class="chart-title">Proposed KPIs & Metrics</div>
+    <div class="chart-subtitle" style="margin-bottom:20px">Organised by dashboard page / category</div>
+    <table class="kpi-table">
+      <thead>
+        <tr>
+          <th>Category</th>
+          <th>KPI / Metric</th>
+          <th>Visual Type</th>
+          <th>Purpose</th>
+          <th>Update Frequency</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="cat-badge cat-churn">Churn</span></td>
+          <td>Overall Churn Rate (%)</td>
+          <td>KPI Card + Sparkline</td>
+          <td>Headline metric — trend over time</td>
+          <td>Monthly</td>
+        </tr>
+        <tr>
+          <td><span class="cat-badge cat-churn">Churn</span></td>
+          <td>Churned Customers (Count)</td>
+          <td>KPI Card</td>
+          <td>Absolute volume of lost customers</td>
+          <td>Monthly</td>
+        </tr>
+        <tr>
+          <td><span class="cat-badge cat-churn">Churn</span></td>
+          <td>Churn by Contract Type</td>
+          <td>Stacked Bar Chart</td>
+          <td>Identify highest-risk contract segments</td>
+          <td>Monthly</td>
+        </tr>
+        <tr>
+          <td><span class="cat-badge cat-churn">Churn</span></td>
+          <td>Churn Rate by Tenure Band</td>
+          <td>Area / Line Chart</td>
+          <td>Visualise the early-lifecycle risk curve</td>
+          <td>Monthly</td>
+        </tr>
+        <tr>
+          <td><span class="cat-badge cat-churn">Churn</span></td>
+          <td>Churn by Internet Service Type</td>
+          <td>Grouped Bar Chart</td>
+          <td>Track fiber vs DSL churn divergence</td>
+          <td>Monthly</td>
+        </tr>
+        <tr>
+          <td><span class="cat-badge cat-churn">Churn</span></td>
+          <td>Churn by Payment Method</td>
+          <td>Donut + Bar Combo</td>
+          <td>E-check vs auto-pay churn differential</td>
+          <td>Monthly</td>
+        </tr>
+        <tr>
+          <td><span class="cat-badge cat-revenue">Revenue</span></td>
+          <td>Monthly Revenue at Risk (MRR Lost)</td>
+          <td>KPI Card + Waterfall</td>
+          <td>Financial impact of churn</td>
+          <td>Monthly</td>
+        </tr>
+        <tr>
+          <td><span class="cat-badge cat-revenue">Revenue</span></td>
+          <td>Avg Monthly Charge — Churned vs Retained</td>
+          <td>Side-by-Side Bar</td>
+          <td>Understand if high-value customers churn more</td>
+          <td>Monthly</td>
+        </tr>
+        <tr>
+          <td><span class="cat-badge cat-revenue">Revenue</span></td>
+          <td>Customer Lifetime Value (CLV) by Segment</td>
+          <td>Heat Map / Matrix</td>
+          <td>Prioritise retention spend by CLV</td>
+          <td>Quarterly</td>
+        </tr>
+        <tr>
+          <td><span class="cat-badge cat-service">Service</span></td>
+          <td>Value-Added Service Adoption Rate</td>
+          <td>100% Stacked Bar</td>
+          <td>Track uptake of security, support, streaming</td>
+          <td>Monthly</td>
+        </tr>
+        <tr>
+          <td><span class="cat-badge cat-service">Service</span></td>
+          <td>Churn Rate with/without Online Security</td>
+          <td>KPI Comparison Card</td>
+          <td>Validate bundle strategy impact</td>
+          <td>Monthly</td>
+        </tr>
+        <tr>
+          <td><span class="cat-badge cat-ops">Operations</span></td>
+          <td>Retention Campaign Reach (%)</td>
+          <td>Gauge / KPI</td>
+          <td>Are outreach campaigns covering at-risk base?</td>
+          <td>Weekly</td>
+        </tr>
+        <tr>
+          <td><span class="cat-badge cat-ops">Operations</span></td>
+          <td>High-Risk Customer Count (ML Score &gt;0.7)</td>
+          <td>KPI Card + Alert</td>
+          <td>Workload visibility for retention team</td>
+          <td>Weekly</td>
+        </tr>
+        <tr>
+          <td><span class="cat-badge cat-ops">Operations</span></td>
+          <td>Contract Upgrade Rate (M2M → Annual)</td>
+          <td>Funnel / KPI Card</td>
+          <td>Measure success of contract migration campaigns</td>
+          <td>Monthly</td>
+        </tr>
+        <tr>
+          <td><span class="cat-badge cat-ops">Operations</span></td>
+          <td>Auto-Pay Adoption Rate</td>
+          <td>KPI Card + Trend</td>
+          <td>Track e-check → auto-pay migration</td>
+          <td>Monthly</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 11. CONCLUSIONS -->
+  <span id="sec-conclusions" class="section-anchor"></span>
+  <div class="section-header">
+    <div class="section-num">11</div>
+    <h2>Conclusions &amp; Actionable Recommendations</h2>
+  </div>
+  <div class="prose">
+    <p><strong>1. Fix the first 12 months.</strong> The early-lifecycle churn rate (~47.7%) is the single biggest structural vulnerability. Implement a mandatory 30/60/90-day onboarding programme and assign a retention specialist to all new fiber optic customers within their first month.</p>
+    <p><strong>2. Convert month-to-month customers.</strong> Launch a targeted contract upgrade campaign with pricing incentives. Even converting 20% of the month-to-month base to annual contracts could reduce overall churn by ~4–5 percentage points.</p>
+    <p><strong>3. Bundle value-added services immediately.</strong> Online Security and Tech Support are proven churn-reducers. Offer them free for 3 months to new customers — the retention gain far outweighs the marginal service cost.</p>
+    <p><strong>4. Deploy a churn propensity model in CRM.</strong> A gradient-boosted ML model on this dataset achieves ~80% accuracy. Scoring all 7,000+ customers weekly and alerting the retention team to any account crossing a 70% risk threshold is the highest-ROI action available.</p>
+    <p><strong>5. Migrate e-check users to auto-pay.</strong> A small monthly bill credit to incentivise auto-pay adoption reduces both churn risk and payment processing costs simultaneously.</p>
+    <p><strong>6. Design a Senior Customer programme.</strong> Senior citizens churn at nearly twice the base rate. Dedicated service channels, simplified onboarding, and loyalty pricing for this cohort will have outsized impact relative to effort.</p>
+  </div>
+
+</div><!-- /content -->
+</div><!-- /content-area -->
+</div><!-- /page-shell -->
+
+<!-- ═══ FOOTER ═══ -->
+<div class="report-footer">
+  <strong>Telco Customer Churn Analysis Report</strong> &nbsp;·&nbsp; IBM Dataset · 7,043 Customers · Q3 California &nbsp;·&nbsp; Prepared March 2026 &nbsp;·&nbsp; Confidential
+</div>
+
+<!-- ═══ CHARTS ═══ -->
+<script>
+const CRIMSON = '#C0392B';
+const NAVY = '#1A2340';
+const GOLD = '#D4A843';
+const SLATE = '#4A5568';
+const SUCCESS = '#27AE60';
+const WARN = '#E67E22';
+const BLUE = '#2980B9';
+const LIGHT_GREY = '#ECF0F1';
+
+Chart.defaults.font.family = "'DM Sans', sans-serif";
+Chart.defaults.color = SLATE;
+
+// 1. Contract Churn Rate
+new Chart(document.getElementById('contractChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Month-to-Month', 'One Year', 'Two Year'],
+    datasets: [{
+      label: 'Churn Rate (%)',
+      data: [42.7, 11.3, 2.8],
+      backgroundColor: [CRIMSON, WARN, SUCCESS],
+      borderRadius: 6,
+      borderSkipped: false,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, max: 55, grid: { color: '#F0F0F0' }, ticks: { callback: v => v + '%' } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+// 2. Contract Distribution
+new Chart(document.getElementById('contractDistChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Month-to-Month (55%)', 'One Year (21%)', 'Two Year (24%)'],
+    datasets: [{
+      data: [3875, 1473, 1695],
+      backgroundColor: [CRIMSON, WARN, SUCCESS],
+      borderWidth: 0,
+      hoverOffset: 8
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { position: 'bottom', labels: { padding: 14, font: { size: 12 } } }
+    }
+  }
+});
+
+// 3. Tenure Chart
+new Chart(document.getElementById('tenureChart'), {
+  type: 'bar',
+  data: {
+    labels: ['0–12 Months', '13–24 Months', '25–36 Months', '37–48 Months', '49–60 Months', '61–72 Months'],
+    datasets: [{
+      label: 'Churn Rate (%)',
+      data: [47.7, 30.1, 23.4, 17.2, 10.8, 7.0],
+      backgroundColor: [CRIMSON, '#D44E3F', '#E07060', WARN, '#E8A862', SUCCESS],
+      borderRadius: 6,
+      borderSkipped: false,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, max: 55, grid: { color: '#F0F0F0' }, ticks: { callback: v => v + '%' } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+// 4. Internet Service
+new Chart(document.getElementById('internetChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Fiber Optic', 'DSL', 'No Internet'],
+    datasets: [{
+      label: 'Churn Rate (%)',
+      data: [41.9, 19.0, 7.4],
+      backgroundColor: [CRIMSON, WARN, SUCCESS],
+      borderRadius: 6,
+      borderSkipped: false,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, max: 55, grid: { color: '#F0F0F0' }, ticks: { callback: v => v + '%' } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+// 5. Value-Added Services
+new Chart(document.getElementById('servicesChart'), {
+  type: 'bar',
+  data: {
+    labels: ['No Online Security', 'With Security', 'No Tech Support', 'With Tech Support', 'No Backup', 'With Backup'],
+    datasets: [{
+      label: 'Churn Rate (%)',
+      data: [41.8, 14.6, 41.7, 15.2, 39.9, 15.8],
+      backgroundColor: [CRIMSON, SUCCESS, CRIMSON, SUCCESS, CRIMSON, SUCCESS],
+      borderRadius: 4,
+      borderSkipped: false,
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { beginAtZero: true, max: 55, ticks: { callback: v => v + '%' }, grid: { color: '#F0F0F0' } },
+      y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+    }
+  }
+});
+
+// 6. Payment Method
+new Chart(document.getElementById('paymentChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Electronic Check', 'Mailed Check', 'Bank Transfer', 'Credit Card'],
+    datasets: [{
+      label: 'Churn Rate (%)',
+      data: [45.3, 19.1, 16.7, 15.2],
+      backgroundColor: [CRIMSON, WARN, BLUE, SUCCESS],
+      borderRadius: 6,
+      borderSkipped: false,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, max: 55, grid: { color: '#F0F0F0' }, ticks: { callback: v => v + '%' } },
+      x: { grid: { display: false }, ticks: { font: { size: 11 } } }
+    }
+  }
+});
+
+// 7. Monthly Charges Distribution
+new Chart(document.getElementById('chargesChart'), {
+  type: 'bar',
+  data: {
+    labels: ['<$20', '$20–40', '$40–60', '$60–80', '$80–100', '>$100'],
+    datasets: [
+      {
+        label: 'Retained (%)',
+        data: [18, 22, 19, 16, 14, 11],
+        backgroundColor: 'rgba(39,174,96,0.7)',
+        borderRadius: 4,
+        borderSkipped: false,
+      },
+      {
+        label: 'Churned (%)',
+        data: [4, 8, 14, 22, 28, 24],
+        backgroundColor: 'rgba(192,57,43,0.75)',
+        borderRadius: 4,
+        borderSkipped: false,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { position: 'top' } },
+    scales: {
+      y: { beginAtZero: true, grid: { color: '#F0F0F0' }, ticks: { callback: v => v + '%' } },
+      x: { grid: { display: false }, ticks: { font: { size: 11 } } }
+    }
+  }
+});
+
+// 8. Senior Citizen
+new Chart(document.getElementById('seniorChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Senior Churn 41.7%', 'Non-Senior Churn 23.7%'],
+    datasets: [{
+      data: [41.7, 23.7],
+      backgroundColor: [CRIMSON, NAVY],
+      borderWidth: 0
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 10 } } }
+  }
+});
+
+// 9. Partner
+new Chart(document.getElementById('partnerChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['No Partner 33.0%', 'Has Partner 20.0%'],
+    datasets: [{
+      data: [33.0, 20.0],
+      backgroundColor: [CRIMSON, NAVY],
+      borderWidth: 0
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 10 } } }
+  }
+});
+
+// 10. Dependents
+new Chart(document.getElementById('dependentsChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['No Dependents 31.3%', 'Has Dependents 15.5%'],
+    datasets: [{
+      data: [31.3, 15.5],
+      backgroundColor: [CRIMSON, NAVY],
+      borderWidth: 0
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 10 } } }
+  }
+});
+
+// 11. Churn Reasons
+new Chart(document.getElementById('churnReasonChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Competitor (Better Deal)', 'Dissatisfaction', 'Price Too High', 'Attitude/Support', 'Other/Personal', 'Unknown'],
+    datasets: [{
+      label: 'Share of Churned (%)',
+      data: [44.9, 16.2, 11.3, 11.0, 9.1, 7.5],
+      backgroundColor: [CRIMSON, WARN, NAVY, BLUE, SLATE, LIGHT_GREY],
+      borderRadius: 5,
+      borderSkipped: false,
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { beginAtZero: true, max: 55, ticks: { callback: v => v + '%' }, grid: { color: '#F0F0F0' } },
+      y: { grid: { display: false }, ticks: { font: { size: 12 } } }
+    }
+  }
+});
+
+// 12. Radar
+new Chart(document.getElementById('radarChart'), {
+  type: 'radar',
+  data: {
+    labels: ['Month-to-Month', 'Fiber Optic', 'Electronic Check', 'Senior Citizen', 'No Security', 'Low Tenure', 'No Partner'],
+    datasets: [
+      {
+        label: 'Churned Customers',
+        data: [85, 75, 82, 60, 78, 90, 64],
+        fill: true,
+        backgroundColor: 'rgba(192,57,43,0.2)',
+        borderColor: CRIMSON,
+        borderWidth: 2,
+        pointBackgroundColor: CRIMSON,
+        pointRadius: 4,
+      },
+      {
+        label: 'Retained Customers',
+        data: [28, 35, 22, 40, 25, 30, 38],
+        fill: true,
+        backgroundColor: 'rgba(26,35,64,0.15)',
+        borderColor: NAVY,
+        borderWidth: 2,
+        pointBackgroundColor: NAVY,
+        pointRadius: 4,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    scales: {
+      r: {
+        min: 0, max: 100,
+        ticks: { display: false },
+        pointLabels: { font: { size: 11 } },
+        grid: { color: '#E8E8E8' }
+      }
+    },
+    plugins: {
+      legend: { position: 'bottom', labels: { padding: 14, font: { size: 12 } } }
+    }
+  }
+});
+</script>
+<!-- ═══ TOC ACTIVE HIGHLIGHT + BACK TO TOP ═══ -->
+<script>
+(function () {
+  // ── collect all anchor targets in document order ──
+  const allLinks = Array.from(document.querySelectorAll('#tocSidebar a[data-sec]'));
+  const anchorIds = allLinks.map(a => a.dataset.sec);
+
+  function getAnchors() {
+    return anchorIds.map(id => document.getElementById(id)).filter(Boolean);
+  }
+
+  function updateActive() {
+    const anchors = getAnchors();
+    const scrollY = window.scrollY + 80; // offset for header clearance
+
+    // find the last anchor whose top <= scrollY
+    let activeId = anchorIds[0];
+    for (let i = 0; i < anchors.length; i++) {
+      if (anchors[i].getBoundingClientRect().top + window.scrollY <= scrollY) {
+        activeId = anchorIds[i];
+      }
+    }
+
+    allLinks.forEach(a => {
+      a.classList.toggle('active', a.dataset.sec === activeId);
+    });
+
+    // scroll active item into view within sidebar if needed
+    const activeLink = allLinks.find(a => a.dataset.sec === activeId);
+    if (activeLink) {
+      const sidebar = document.getElementById('tocSidebar');
+      const linkTop    = activeLink.offsetTop;
+      const linkBottom = linkTop + activeLink.offsetHeight;
+      const sidebarTop    = sidebar.scrollTop;
+      const sidebarBottom = sidebarTop + sidebar.clientHeight;
+      if (linkTop < sidebarTop + 40) {
+        sidebar.scrollTop = linkTop - 40;
+      } else if (linkBottom > sidebarBottom - 40) {
+        sidebar.scrollTop = linkBottom - sidebar.clientHeight + 40;
+      }
+    }
+  }
+
+  // ── back to top button ──
+  const btn = document.getElementById('backTop');
+  function updateBackTop() {
+    btn.classList.toggle('visible', window.scrollY > 400);
+  }
+
+  window.addEventListener('scroll', () => {
+    updateActive();
+    updateBackTop();
+  }, { passive: true });
+
+  // run once on load
+  updateActive();
+  updateBackTop();
+})();
+</script>
+</body>
+</html>

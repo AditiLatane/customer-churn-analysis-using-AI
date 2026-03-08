@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Telco Churn Intelligence Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+/* ── RESET & BASE ─────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --crimson:   #C0392B;
+  --crimsonL:  #E74C3C;
+  --navy:      #1A2340;
+  --navyM:     #243058;
+  --gold:      #D4A843;
+  --goldL:     #F0C060;
+  --slate:     #4A5568;
+  --fog:       #ECEEF3;
+  --white:     #FFFFFF;
+  --border:    #E2E8F0;
+  --muted:     #718096;
+  --success:   #27AE60;
+  --warn:      #E67E22;
+  --blue:      #2980B9;
+  --text:      #2D3748;
+}
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--fog);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── TOP BAR ──────────────────────────────────── */
+.topbar {
+  background: var(--navy);
+  color: #fff;
+  height: 56px;
+  padding: 0 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.topbar-brand { display: flex; align-items: center; gap: 14px; }
+.topbar-logo {
+  width: 34px; height: 34px;
+  background: var(--crimson);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Playfair Display', serif;
+  font-weight: 900; font-size: 17px; color: #fff;
+  flex-shrink: 0;
+}
+.topbar-title { font-weight: 700; font-size: 14px; letter-spacing: 0.3px; }
+.topbar-sub { font-size: 10px; color: rgba(255,255,255,0.5); letter-spacing: 0.5px; margin-top: 1px; }
+.topbar-right { display: flex; align-items: center; gap: 16px; }
+.churn-pill {
+  background: rgba(192,57,43,0.3);
+  border-radius: 6px;
+  padding: 5px 13px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+}
+.topbar-date { font-size: 11px; color: rgba(255,255,255,0.4); }
+
+/* ── NAV TABS ─────────────────────────────────── */
+.navtabs {
+  background: var(--navyM);
+  padding: 0 28px;
+  display: flex;
+  gap: 0;
+  position: sticky;
+  top: 56px;
+  z-index: 99;
+}
+.nav-tab {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: rgba(255,255,255,0.5);
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+  font-size: 13px;
+  padding: 14px 22px;
+  border-bottom: 3px solid transparent;
+  transition: all 0.15s;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+.nav-tab:hover { color: rgba(255,255,255,0.85); }
+.nav-tab.active {
+  color: #fff;
+  font-weight: 700;
+  border-bottom-color: var(--gold);
+}
+
+/* ── PAGE CONTENT ─────────────────────────────── */
+.pages { flex: 1; }
+.page {
+  display: none;
+  padding: 24px 28px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.page.active { display: block; }
+
+/* ── KPI ROW ──────────────────────────────────── */
+.kpi-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 20px; }
+.kpi-card {
+  background: var(--white);
+  border-radius: 12px;
+  padding: 20px 22px;
+  border: 1px solid var(--border);
+  border-top-width: 4px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.kpi-icon { font-size: 22px; margin-bottom: 8px; }
+.kpi-val {
+  font-family: 'Playfair Display', serif;
+  font-size: 30px; font-weight: 700;
+  color: var(--navy); line-height: 1.1; margin-bottom: 4px;
+}
+.kpi-label {
+  font-size: 11px; font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase; letter-spacing: 1px;
+}
+.kpi-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+/* ── GRID LAYOUTS ─────────────────────────────── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 20px; }
+.grid-2-1 { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 20px; }
+.col-full { grid-column: 1 / -1; }
+.mb-20 { margin-bottom: 20px; }
+
+/* ── CHART CARD ───────────────────────────────── */
+.chart-card {
+  background: var(--white);
+  border-radius: 12px;
+  padding: 22px 24px;
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.chart-card-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 15px; font-weight: 700; color: var(--navy);
+}
+.chart-card-sub { font-size: 12px; color: var(--muted); margin-top: 3px; margin-bottom: 16px; }
+.chart-wrap { position: relative; }
+
+/* ── FILTER BAR ───────────────────────────────── */
+.filter-bar { display: flex; gap: 8px; flex-wrap: wrap; }
+.filter-btn {
+  padding: 6px 16px; border-radius: 20px; border: none;
+  background: var(--white); color: var(--slate);
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600; font-size: 12px; cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  transition: all 0.15s; letter-spacing: 0.3px;
+}
+.filter-btn.active {
+  background: var(--navy); color: #fff;
+  box-shadow: none;
+}
+.filter-btn:hover:not(.active) { background: var(--fog); }
+
+.drivers-header {
+  display: flex; align-items: center;
+  justify-content: space-between; flex-wrap: wrap;
+  gap: 12px; margin-bottom: 20px;
+}
+.drivers-header h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: 18px; font-weight: 700; color: var(--navy);
+}
+
+/* ── FILTERABLE SECTIONS ──────────────────────── */
+.filterable { transition: opacity 0.2s; }
+.filterable.hidden { display: none; }
+
+/* ── RISK SEGMENT CARDS ───────────────────────── */
+.seg-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 20px; }
+.seg-card {
+  background: var(--white);
+  border-radius: 12px; padding: 18px 20px;
+  border: 1px solid var(--border);
+  border-left-width: 4px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.seg-head {
+  display: flex; justify-content: space-between;
+  align-items: flex-start; margin-bottom: 8px; gap: 8px;
+}
+.seg-name { font-weight: 700; font-size: 13.5px; color: var(--navy); line-height: 1.3; }
+.risk-badge {
+  border-radius: 12px; padding: 2px 10px;
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  white-space: nowrap; flex-shrink: 0;
+}
+.risk-critical { background: #FDECEA; color: var(--crimson); }
+.risk-high     { background: #FEF3E2; color: var(--warn); }
+.risk-medium   { background: #EBF5FB; color: var(--blue); }
+.risk-low      { background: #E9F7EF; color: var(--success); }
+.seg-chars { font-size: 11px; color: var(--muted); margin-bottom: 12px; }
+.seg-stats { display: flex; gap: 14px; margin-bottom: 12px; }
+.seg-stat-val {
+  font-family: 'Playfair Display', serif;
+  font-size: 21px; font-weight: 700; line-height: 1;
+}
+.seg-stat-label {
+  font-size: 9.5px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px;
+}
+.seg-bar-track {
+  height: 6px; background: #F0F0F0;
+  border-radius: 4px; margin-bottom: 10px;
+}
+.seg-bar-fill { height: 100%; border-radius: 4px; }
+.seg-action {
+  font-size: 11px; color: var(--slate);
+  background: var(--fog); border-radius: 6px;
+  padding: 6px 10px;
+}
+
+/* ── BUBBLE VIZ ───────────────────────────────── */
+.bubble-wrap {
+  display: flex; gap: 20px; flex-wrap: wrap;
+  align-items: flex-end; justify-content: center;
+  padding: 16px 0 8px;
+}
+.bubble-item { text-align: center; }
+.bubble-circle {
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: 700;
+  margin: 0 auto 8px;
+  opacity: 0.88;
+}
+.bubble-label { font-size: 10px; color: var(--muted); max-width: 80px; margin: 0 auto; }
+.bubble-legend { font-size: 11px; color: var(--muted); text-align: center; margin-top: 10px; }
+
+/* ── RETENTION PAGE ───────────────────────────── */
+.ret-kpi-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 20px; }
+.ret-kpi-card {
+  background: var(--white); border-radius: 10px;
+  padding: 16px 18px; border: 1px solid var(--border);
+  border-left-width: 4px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+.ret-kpi-icon { font-size: 20px; margin-bottom: 6px; }
+.ret-kpi-label {
+  font-size: 11px; font-weight: 600; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.8px;
+  margin-bottom: 4px;
+}
+.ret-kpi-row { display: flex; align-items: baseline; gap: 10px; }
+.ret-kpi-val {
+  font-family: 'Playfair Display', serif;
+  font-size: 22px; font-weight: 700; color: var(--navy);
+}
+.ret-kpi-target { font-size: 11px; font-weight: 700; }
+
+.strategy-list { display: flex; flex-direction: column; gap: 12px; }
+.strategy-row {
+  display: flex; gap: 16px; align-items: flex-start;
+  background: var(--fog); border-radius: 10px;
+  padding: 14px 18px; border: 1px solid var(--border);
+}
+.strategy-icon { font-size: 24px; flex-shrink: 0; }
+.strategy-body { flex: 1; }
+.strategy-meta {
+  display: flex; align-items: center;
+  gap: 10px; margin-bottom: 4px; flex-wrap: wrap;
+}
+.strategy-title { font-weight: 700; font-size: 14px; color: var(--navy); }
+.priority-badge {
+  border-radius: 10px; padding: 2px 10px;
+  font-size: 10px; font-weight: 700; color: #fff;
+}
+.strategy-metric { font-size: 11px; color: var(--muted); }
+.strategy-desc { font-size: 13px; color: var(--slate); line-height: 1.5; }
+
+.ret-note {
+  font-size: 11px; color: var(--muted);
+  text-align: center; margin-top: 8px;
+}
+.section-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 17px; font-weight: 700; color: var(--navy);
+  margin-bottom: 14px;
+}
+
+/* ── SCROLLBAR ────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ── RESPONSIVE ───────────────────────────────── */
+@media (max-width: 900px) {
+  .kpi-row, .seg-grid, .ret-kpi-grid { grid-template-columns: 1fr 1fr; }
+  .grid-2, .grid-3, .grid-2-1 { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .kpi-row, .seg-grid, .ret-kpi-grid { grid-template-columns: 1fr; }
+  .page { padding: 16px; }
+  .topbar { padding: 0 16px; }
+  .navtabs { padding: 0 8px; overflow-x: auto; }
+  .nav-tab { padding: 12px 14px; font-size: 12px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════
+     TOP BAR
+════════════════════════════════════════════════ -->
+<div class="topbar">
+  <div class="topbar-brand">
+    <div class="topbar-logo">T</div>
+    <div>
+      <div class="topbar-title">Telco Churn Intelligence</div>
+      <div class="topbar-sub">IBM Dataset · 7,043 Customers · Q3 California</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="churn-pill">🔴 Churn Rate: 26.5%</div>
+    <div class="topbar-date">March 2026</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     NAV TABS
+════════════════════════════════════════════════ -->
+<div class="navtabs">
+  <button class="nav-tab active" onclick="switchPage('overview',this)">📊&nbsp; Overview</button>
+  <button class="nav-tab" onclick="switchPage('drivers',this)">🔍&nbsp; Churn Drivers</button>
+  <button class="nav-tab" onclick="switchPage('segments',this)">🎯&nbsp; Risk Segments</button>
+  <button class="nav-tab" onclick="switchPage('retention',this)">🛡️&nbsp; Retention Strategy</button>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     PAGE: OVERVIEW
+════════════════════════════════════════════════ -->
+<div id="page-overview" class="page active">
+
+  <!-- KPIs -->
+  <div class="kpi-row">
+    <div class="kpi-card" style="border-top-color:var(--crimson)">
+      <div class="kpi-icon">📉</div>
+      <div class="kpi-val">26.5%</div>
+      <div class="kpi-label">Overall Churn Rate</div>
+      <div class="kpi-sub">1,869 customers lost</div>
+    </div>
+    <div class="kpi-card" style="border-top-color:var(--navy)">
+      <div class="kpi-icon">👥</div>
+      <div class="kpi-val">7,043</div>
+      <div class="kpi-label">Total Customers</div>
+      <div class="kpi-sub">Q3 California</div>
+    </div>
+    <div class="kpi-card" style="border-top-color:var(--warn)">
+      <div class="kpi-icon">💰</div>
+      <div class="kpi-val">$74.44</div>
+      <div class="kpi-label">Avg Charge — Churned</div>
+      <div class="kpi-sub">vs $61.27 retained</div>
+    </div>
+    <div class="kpi-card" style="border-top-color:var(--gold)">
+      <div class="kpi-icon">⚠️</div>
+      <div class="kpi-val">$139K+</div>
+      <div class="kpi-label">Monthly Revenue Risk</div>
+      <div class="kpi-sub">MRR from churned accounts</div>
+    </div>
+  </div>
+
+  <!-- Trend + Donut -->
+  <div class="grid-2-1">
+    <div class="chart-card">
+      <div class="chart-card-title">Churn Rate Trend</div>
+      <div class="chart-card-sub">8-month view · % of customers who churned each month</div>
+      <div class="chart-wrap"><canvas id="trendChart" height="200"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-title">Contract Split</div>
+      <div class="chart-card-sub">By number of customers</div>
+      <div class="chart-wrap"><canvas id="contractDonutChart" height="200"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Contract Bar + Tenure Bar -->
+  <div class="grid-2">
+    <div class="chart-card">
+      <div class="chart-card-title">Churn Rate by Contract Type</div>
+      <div class="chart-card-sub">Month-to-month customers are 15× more likely to churn than 2-year</div>
+      <div class="chart-wrap"><canvas id="ovContractChart" height="190"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-title">Churn Rate by Tenure Band</div>
+      <div class="chart-card-sub">Risk halves every ~18 months of customer lifetime</div>
+      <div class="chart-wrap"><canvas id="ovTenureChart" height="190"></canvas></div>
+    </div>
+  </div>
+
+</div><!-- /overview -->
+
+
+<!-- ══════════════════════════════════════════════
+     PAGE: CHURN DRIVERS
+════════════════════════════════════════════════ -->
+<div id="page-drivers" class="page">
+
+  <div class="drivers-header">
+    <h2>Churn Driver Deep-Dive</h2>
+    <div class="filter-bar" id="driverFilters">
+      <button class="filter-btn active" onclick="filterDrivers('All',this)">All</button>
+      <button class="filter-btn" onclick="filterDrivers('Services',this)">Services</button>
+      <button class="filter-btn" onclick="filterDrivers('Payment',this)">Payment</button>
+      <button class="filter-btn" onclick="filterDrivers('Demographics',this)">Demographics</button>
+    </div>
+  </div>
+
+  <!-- Internet + Payment -->
+  <div class="grid-2 mb-20">
+    <div class="chart-card">
+      <div class="chart-card-title">Internet Service Type</div>
+      <div class="chart-card-sub">Fiber optic users churn at 41.9% — 5.7× no-internet customers</div>
+      <div class="chart-wrap"><canvas id="drInternetChart" height="190"></canvas></div>
+    </div>
+    <div class="chart-card filterable" data-filter="Payment">
+      <div class="chart-card-title">Payment Method</div>
+      <div class="chart-card-sub">Electronic check users are 3× more likely to churn than credit card users</div>
+      <div class="chart-wrap"><canvas id="drPaymentChart" height="190"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Services -->
+  <div class="chart-card mb-20 filterable" data-filter="Services">
+    <div class="chart-card-title">Value-Added Services — With vs Without</div>
+    <div class="chart-card-sub">Every protective add-on cuts churn rate by more than half</div>
+    <div class="chart-wrap"><canvas id="drServicesChart" height="180"></canvas></div>
+  </div>
+
+  <!-- Demographics + Radar -->
+  <div class="grid-2 mb-20">
+    <div class="chart-card filterable" data-filter="Demographics">
+      <div class="chart-card-title">Demographic Risk Groups</div>
+      <div class="chart-card-sub">Senior, solo, and no-dependent customers show elevated churn</div>
+      <div class="chart-wrap"><canvas id="drDemoChart" height="210"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-title">Risk Factor Radar</div>
+      <div class="chart-card-sub">Intensity of each factor among churned vs retained customers</div>
+      <div class="chart-wrap"><canvas id="drRadarChart" height="210"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Churn Reasons -->
+  <div class="chart-card">
+    <div class="chart-card-title">Primary Churn Reasons</div>
+    <div class="chart-card-sub">Why churned customers say they left — competitor offers dominate at 44.9%</div>
+    <div class="chart-wrap"><canvas id="drReasonsChart" height="180"></canvas></div>
+  </div>
+
+</div><!-- /drivers -->
+
+
+<!-- ══════════════════════════════════════════════
+     PAGE: RISK SEGMENTS
+════════════════════════════════════════════════ -->
+<div id="page-segments" class="page">
+
+  <div class="section-title">Customer Segment Risk Matrix</div>
+
+  <div class="seg-grid" id="segGrid">
+    <!-- injected by JS -->
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-card-title">Segment Risk vs Volume Overview</div>
+    <div class="chart-card-sub">Bubble area = number of customers &nbsp;·&nbsp; Larger bubble = more customers at risk</div>
+    <div class="bubble-wrap" id="bubbleWrap"><!-- injected by JS --></div>
+    <div class="bubble-legend">🔴 Critical &nbsp;·&nbsp; 🟠 High &nbsp;·&nbsp; 🔵 Medium</div>
+  </div>
+
+</div><!-- /segments -->
+
+
+<!-- ══════════════════════════════════════════════
+     PAGE: RETENTION STRATEGY
+════════════════════════════════════════════════ -->
+<div id="page-retention" class="page">
+
+  <div class="section-title">Retention Strategy &amp; KPI Tracker</div>
+
+  <!-- Operational KPI mini-cards -->
+  <div class="ret-kpi-grid" id="retKpiGrid"><!-- injected by JS --></div>
+
+  <!-- Strategy Roadmap -->
+  <div class="chart-card mb-20">
+    <div class="chart-card-title">Retention Strategy Roadmap</div>
+    <div class="chart-card-sub">Prioritised actions with impact &amp; effort assessment</div>
+    <div class="strategy-list" id="strategyList"><!-- injected by JS --></div>
+  </div>
+
+  <!-- Projected Churn Reduction -->
+  <div class="chart-card">
+    <div class="chart-card-title">Projected Churn Reduction — Strategy Impact</div>
+    <div class="chart-card-sub">Estimated churn rate if each strategy is fully implemented (cumulative)</div>
+    <div class="chart-wrap"><canvas id="retProjectChart" height="200"></canvas></div>
+    <div class="ret-note">
+      Full implementation of all strategies could reduce churn from 26.5% → ~14.5%, saving ~$84K/month in recovered MRR
+    </div>
+  </div>
+
+</div><!-- /retention -->
+
+
+<!-- ══════════════════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════════════════════ -->
+<script>
+/* ═══════════════════════════════════════════════
+   DATA
+════════════════════════════════════════════════ */
+const D = {
+  trend: {
+    labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug'],
+    churn:  [24.1, 25.0, 26.2, 27.5, 26.8, 28.1, 27.0, 26.5],
+  },
+  contract: {
+    labels: ['Month-to-Month','One Year','Two Year'],
+    churnRate: [42.7, 11.3, 2.8],
+    customers: [3875, 1473, 1695],
+  },
+  tenure: {
+    labels: ['0–12 mo','13–24 mo','25–36 mo','37–48 mo','49–60 mo','61–72 mo'],
+    churnRate: [47.7, 30.1, 23.4, 17.2, 10.8, 7.0],
+  },
+  internet: {
+    labels: ['Fiber Optic','DSL','No Internet'],
+    churnRate: [41.9, 19.0, 7.4],
+  },
+  payment: {
+    labels: ['Electronic Check','Mailed Check','Bank Transfer','Credit Card'],
+    churnRate: [45.3, 19.1, 16.7, 15.2],
+  },
+  services: {
+    labels: ['Online Security','Tech Support','Online Backup','Device Protect'],
+    without: [41.8, 41.7, 39.9, 40.1],
+    with:    [14.6, 15.2, 15.8, 16.3],
+  },
+  demographics: {
+    labels: ['Senior - No Partner','Senior - Has Partner','Non-Senior No Partner','Non-Senior Has Partner','Has Dependents','No Dependents'],
+    churnRate: [47, 36, 30, 18, 15.5, 31.3],
+  },
+  radar: {
+    labels: ['M2M Contract','Fiber Optic','E-Check','Senior','No Security','Low Tenure','Solo Customer'],
+    churned:  [85, 75, 82, 60, 78, 90, 64],
+    retained: [28, 35, 22, 40, 25, 30, 38],
+  },
+  reasons: {
+    labels: ['Competitor','Dissatisfied','Price','Support','Personal','Unknown'],
+    pct: [44.9, 16.2, 11.3, 11.0, 9.1, 7.5],
+  },
+  segments: [
+    { name:'Early Fiber Switchers',   chars:'Fiber optic · Month-to-month · Tenure <12 mo',   size:620,  churn:62, risk:'Critical', color:'#C0392B', mrr:'$46K+', action:'Immediate outreach + bundle offer' },
+    { name:'Unprotected High Spenders',chars:'Monthly charge >$70 · No security/support',      size:940,  churn:52, risk:'Critical', color:'#C0392B', mrr:'$65K+', action:'Bundle security/support free 3 months' },
+    { name:'Senior Solo Customers',   chars:'Senior citizen · No partner · No dependents',     size:480,  churn:47, risk:'Critical', color:'#C0392B', mrr:'$28K+', action:'Senior care programme + loyalty pricing' },
+    { name:'E-Check Month-to-Month',  chars:'Electronic check · Month-to-month contract',      size:1100, churn:48, risk:'High',     color:'#E67E22', mrr:'$82K+', action:'Auto-pay migration with $5/mo credit' },
+    { name:'Mid-Tenure Fiber/DSL',    chars:'Tenure 13–24 mo · Fiber or DSL · Paperless',     size:780,  churn:30, risk:'Medium',   color:'#2980B9', mrr:'$35K+', action:'Annual contract discount offer' },
+    { name:'New No-Service Customers',chars:'Tenure <6 mo · Phone only · No add-ons',          size:420,  churn:38, risk:'High',     color:'#E67E22', mrr:'$15K+', action:'30/60/90 onboarding programme' },
+    { name:'Loyal Long-Term',         chars:'Tenure >48 mo · Annual or 2-year contract',       size:2100, churn:7,  risk:'Low',      color:'#27AE60', mrr:'—',     action:'Loyalty recognition + upsell' },
+  ],
+  retKpis: [
+    { icon:'📋', label:'Contract Upgrade Rate',    value:'—',     target:'15%/qtr', color:'#1A2340' },
+    { icon:'💳', label:'Auto-Pay Adoption',         value:'—',     target:'60%',     color:'#2980B9' },
+    { icon:'🛡️', label:'Bundle Attach Rate',        value:'—',     target:'40%',     color:'#27AE60' },
+    { icon:'📣', label:'Retention Campaign Reach',  value:'—',     target:'80%',     color:'#E67E22' },
+    { icon:'⚠️', label:'High-Risk Accounts Flagged',value:'—',     target:'Weekly',  color:'#C0392B' },
+    { icon:'📉', label:'Churn Rate (Target)',        value:'26.5%', target:'<20%',    color:'#D4A843' },
+  ],
+  strategies: [
+    { icon:'📋', title:'Contract Migration Campaign',   priority:'P1 – Immediate', pColor:'#C0392B', impact:'High',      effort:'Low',    desc:'Offer 10–15% discount for switching from month-to-month to annual. Target top 1,000 highest-risk M2M accounts first using ML score.' },
+    { icon:'🌱', title:'30/60/90 Onboarding Programme', priority:'P1 – Immediate', pColor:'#C0392B', impact:'High',      effort:'Medium', desc:'Structured welcome touchpoints at day 7, 30, 60, 90. Proactive satisfaction check-in and personalised plan review.' },
+    { icon:'🛡️', title:'New Customer Security Bundle',  priority:'P2 – Q2',        pColor:'#E67E22', impact:'Very High', effort:'Low',    desc:'Free Online Security + Tech Support for 3 months on all new Fiber optic activations. Converts high-churn segment to low-churn.' },
+    { icon:'💳', title:'Auto-Pay Migration Incentive',  priority:'P2 – Q2',        pColor:'#E67E22', impact:'Medium',   effort:'Low',    desc:'$5/month credit for switching from electronic check to automatic payment. Also lowers payment processing costs.' },
+    { icon:'👴', title:'Senior Customer Care Programme',priority:'P2 – Q2',        pColor:'#E67E22', impact:'Medium',   effort:'Medium', desc:'Dedicated helpline, simplified billing, in-home tech support, and loyalty pricing for senior citizens.' },
+    { icon:'🤖', title:'ML Churn Propensity Model',     priority:'P3 – Q3',        pColor:'#2980B9', impact:'Highest ROI',effort:'High', desc:'Deploy gradient boosted model (~80% accuracy) to score all customers weekly. Alert CRM when score >0.7 for proactive outreach.' },
+  ],
+  projectedReduction: {
+    labels: ['Baseline','+ Contract Campaign','+ Onboarding','+ Bundle','+ Auto-Pay','+ Senior Care','+ ML Model'],
+    rates:  [26.5, 22.8, 20.4, 18.1, 17.0, 16.2, 14.5],
+    colors: ['#4A5568','#E07060','#E67E22','#E8A862','#A8D5B5','#27AE60','#1A6B3A'],
+  },
+};
+
+/* ═══════════════════════════════════════════════
+   COLOUR HELPERS
+════════════════════════════════════════════════ */
+const PIE_COLORS    = ['#C0392B','#E67E22','#27AE60'];
+const REASON_COLORS = ['#C0392B','#E67E22','#1A2340','#2980B9','#4A5568','#BDC3C7'];
+const NAVY = '#1A2340', CRIMSON = '#C0392B', WARN = '#E67E22', SUCCESS = '#27AE60', BLUE = '#2980B9';
+
+Chart.defaults.font.family = "'DM Sans', sans-serif";
+Chart.defaults.color = '#718096';
+
+function tooltipPlugin() {
+  return {
+    plugins: {
+      tooltip: {
+        backgroundColor: NAVY,
+        titleColor: '#F0C060',
+        bodyColor: '#fff',
+        padding: 10,
+        cornerRadius: 8,
+        callbacks: { label: ctx => ` ${ctx.dataset.label || ''}: ${ctx.parsed.y ?? ctx.parsed.x}%` }
+      },
+      legend: { display: false }
+    }
+  };
+}
+
+/* ═══════════════════════════════════════════════
+   PAGE SWITCHING
+════════════════════════════════════════════════ */
+function switchPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+
+/* ═══════════════════════════════════════════════
+   DRIVER FILTER
+════════════════════════════════════════════════ */
+function filterDrivers(filter, btn) {
+  document.querySelectorAll('#driverFilters .filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  document.querySelectorAll('.filterable').forEach(el => {
+    const f = el.dataset.filter;
+    if (filter === 'All' || !f || f === filter) {
+      el.classList.remove('hidden');
+    } else {
+      el.classList.add('hidden');
+    }
+  });
+}
+
+/* ═══════════════════════════════════════════════
+   BUILD SEGMENT CARDS
+════════════════════════════════════════════════ */
+function buildSegments() {
+  const grid = document.getElementById('segGrid');
+  const bubbleWrap = document.getElementById('bubbleWrap');
+  const riskClass = r => r === 'Critical' ? 'risk-critical' : r === 'High' ? 'risk-high' : r === 'Medium' ? 'risk-medium' : 'risk-low';
+
+  D.segments.forEach(s => {
+    const barPct = Math.min(s.churn, 100);
+    grid.innerHTML += `
+      <div class="seg-card" style="border-left-color:${s.color}">
+        <div class="seg-head">
+          <div class="seg-name">${s.name}</div>
+          <span class="risk-badge ${riskClass(s.risk)}">${s.risk}</span>
+        </div>
+        <div class="seg-chars">${s.chars}</div>
+        <div class="seg-stats">
+          <div>
+            <div class="seg-stat-val" style="color:${s.color}">${s.churn}%</div>
+            <div class="seg-stat-label">Churn Rate</div>
+          </div>
+          <div>
+            <div class="seg-stat-val" style="color:${NAVY}">${s.size.toLocaleString()}</div>
+            <div class="seg-stat-label">Customers</div>
+          </div>
+          <div>
+            <div class="seg-stat-val" style="color:#D4A843">${s.mrr}</div>
+            <div class="seg-stat-label">MRR at Risk</div>
+          </div>
+        </div>
+        <div class="seg-bar-track">
+          <div class="seg-bar-fill" style="width:${barPct}%;background:${s.color}"></div>
+        </div>
+        <div class="seg-action">💡 ${s.action}</div>
+      </div>`;
+
+    if (s.mrr !== '—') {
+      const size = Math.round(Math.sqrt(s.size) * 2.3);
+      const fs = Math.max(10, Math.round(size / 5.5));
+      bubbleWrap.innerHTML += `
+        <div class="bubble-item">
+          <div class="bubble-circle" style="width:${size}px;height:${size}px;background:${s.color};font-size:${fs}px;box-shadow:0 4px 14px ${s.color}40">
+            ${s.churn}%
+          </div>
+          <div class="bubble-label">${s.name}</div>
+        </div>`;
+    }
+  });
+}
+
+/* ═══════════════════════════════════════════════
+   BUILD RETENTION PAGE
+════════════════════════════════════════════════ */
+function buildRetention() {
+  // KPI cards
+  const kpiGrid = document.getElementById('retKpiGrid');
+  D.retKpis.forEach(k => {
+    kpiGrid.innerHTML += `
+      <div class="ret-kpi-card" style="border-left-color:${k.color}">
+        <div class="ret-kpi-icon">${k.icon}</div>
+        <div class="ret-kpi-label">${k.label}</div>
+        <div class="ret-kpi-row">
+          <span class="ret-kpi-val">${k.value}</span>
+          <span class="ret-kpi-target" style="color:${k.color}">Target: ${k.target}</span>
+        </div>
+      </div>`;
+  });
+
+  // Strategy list
+  const list = document.getElementById('strategyList');
+  D.strategies.forEach(s => {
+    list.innerHTML += `
+      <div class="strategy-row">
+        <div class="strategy-icon">${s.icon}</div>
+        <div class="strategy-body">
+          <div class="strategy-meta">
+            <span class="strategy-title">${s.title}</span>
+            <span class="priority-badge" style="background:${s.pColor}">${s.priority}</span>
+            <span class="strategy-metric">Impact: <strong>${s.impact}</strong></span>
+            <span class="strategy-metric">Effort: <strong>${s.effort}</strong></span>
+          </div>
+          <div class="strategy-desc">${s.desc}</div>
+        </div>
+      </div>`;
+  });
+}
+
+/* ═══════════════════════════════════════════════
+   CHARTS — OVERVIEW
+════════════════════════════════════════════════ */
+function buildOverviewCharts() {
+
+  // Trend Area
+  new Chart(document.getElementById('trendChart'), {
+    type: 'line',
+    data: {
+      labels: D.trend.labels,
+      datasets: [{
+        label: 'Churn Rate',
+        data: D.trend.churn,
+        borderColor: CRIMSON,
+        borderWidth: 2.5,
+        pointBackgroundColor: CRIMSON,
+        pointRadius: 4,
+        fill: true,
+        backgroundColor: (ctx) => {
+          const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, 200);
+          g.addColorStop(0, 'rgba(192,57,43,0.22)');
+          g.addColorStop(1, 'rgba(192,57,43,0)');
+          return g;
+        },
+        tension: 0.4,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: NAVY, titleColor: '#F0C060', bodyColor: '#fff',
+          padding: 10, cornerRadius: 8,
+          callbacks: { label: ctx => ` Churn Rate: ${ctx.parsed.y}%` }
+        }
+      },
+      scales: {
+        y: { min: 20, max: 32, ticks: { callback: v => v + '%' }, grid: { color: '#F0F0F0' } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+
+  // Contract Donut
+  new Chart(document.getElementById('contractDonutChart'), {
+    type: 'doughnut',
+    data: {
+      labels: D.contract.labels,
+      datasets: [{
+        data: D.contract.customers,
+        backgroundColor: PIE_COLORS,
+        borderWidth: 0,
+        hoverOffset: 8,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'bottom', labels: { padding: 14, font: { size: 11 } } },
+        tooltip: {
+          backgroundColor: NAVY, titleColor: '#F0C060', bodyColor: '#fff',
+          callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed.toLocaleString()} customers` }
+        }
+      }
+    }
+  });
+
+  // Contract Horizontal Bar
+  new Chart(document.getElementById('ovContractChart'), {
+    type: 'bar',
+    data: {
+      labels: D.contract.labels,
+      datasets: [{
+        label: 'Churn Rate',
+        data: D.contract.churnRate,
+        backgroundColor: PIE_COLORS,
+        borderRadius: { topLeft: 0, topRight: 6, bottomLeft: 0, bottomRight: 6 },
+        borderSkipped: 'left',
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: { backgroundColor: NAVY, titleColor: '#F0C060', bodyColor: '#fff',
+          callbacks: { label: ctx => ` Churn Rate: ${ctx.parsed.x}%` } }
+      },
+      scales: {
+        x: { beginAtZero: true, max: 50, ticks: { callback: v => v + '%' }, grid: { color: '#F0F0F0' } },
+        y: { grid: { display: false } }
+      }
+    }
+  });
+
+  // Tenure Bar
+  new Chart(document.getElementById('ovTenureChart'), {
+    type: 'bar',
+    data: {
+      labels: D.tenure.labels,
+      datasets: [{
+        label: 'Churn Rate',
+        data: D.tenure.churnRate,
+        backgroundColor: D.tenure.churnRate.map(v =>
+          v > 40 ? CRIMSON : v > 25 ? WARN : v > 15 ? '#E8A862' : SUCCESS),
+        borderRadius: 5, borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: { backgroundColor: NAVY, titleColor: '#F0C060', bodyColor: '#fff',
+          callbacks: { label: ctx => ` Churn Rate: ${ctx.parsed.y}%` } }
+      },
+      scales: {
+        y: { beginAtZero: true, max: 55, ticks: { callback: v => v + '%' }, grid: { color: '#F0F0F0' } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+}
+
+/* ═══════════════════════════════════════════════
+   CHARTS — DRIVERS
+════════════════════════════════════════════════ */
+function buildDriverCharts() {
+
+  // Internet
+  new Chart(document.getElementById('drInternetChart'), {
+    type: 'bar',
+    data: {
+      labels: D.internet.labels,
+      datasets: [{
+        label: 'Churn Rate',
+        data: D.internet.churnRate,
+        backgroundColor: [CRIMSON, WARN, SUCCESS],
+        borderRadius: 5, borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false },
+        tooltip: { backgroundColor: NAVY, titleColor: '#F0C060', bodyColor: '#fff',
+          callbacks: { label: ctx => ` Churn Rate: ${ctx.parsed.y}%` } } },
+      scales: {
+        y: { beginAtZero: true, max: 50, ticks: { callback: v => v + '%' }, grid: { color: '#F0F0F0' } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+
+  // Payment
+  new Chart(document.getElementById('drPaymentChart'), {
+    type: 'bar',
+    data: {
+      labels: D.payment.labels,
+      datasets: [{
+        label: 'Churn Rate',
+        data: D.payment.churnRate,
+        backgroundColor: [CRIMSON, WARN, BLUE, SUCCESS],
+        borderRadius: 5, borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false },
+        tooltip: { backgroundColor: NAVY, titleColor: '#F0C060', bodyColor: '#fff',
+          callbacks: { label: ctx => ` Churn Rate: ${ctx.parsed.y}%` } } },
+      scales: {
+        y: { beginAtZero: true, max: 55, ticks: { callback: v => v + '%' }, grid: { color: '#F0F0F0' } },
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } }
+      }
+    }
+  });
+
+  // Services grouped horizontal bar
+  new Chart(document.getElementById('drServicesChart'), {
+    type: 'bar',
+    data: {
+      labels: D.services.labels,
+      datasets: [
+        { label: 'Without Service', data: D.services.without, backgroundColor: CRIMSON,
+          borderRadius: { topLeft: 0, topRight: 5, bottomLeft: 0, bottomRight: 5 }, borderSkipped: 'left' },
+        { label: 'With Service', data: D.services.with, backgroundColor: SUCCESS,
+          borderRadius: { topLeft: 0, topRight: 5, bottomLeft: 0, bottomRight: 5 }, borderSkipped: 'left' },
+      ]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      plugins: {
+        legend: { position: 'top', labels: { font: { size: 12 } } },
+        tooltip: { backgroundColor: NAVY, titleColor: '#F0C060', bodyColor: '#fff',
+          callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.x}%` } }
+      },
+      scales: {
+        x: { beginAtZero: true, max: 50, ticks: { callback: v => v + '%' }, grid: { color: '#F0F0F0' } },
+        y: { grid: { display: false } }
+      }
+    }
+  });
+
+  // Demographics
+  const demoColors = D.demographics.churnRate.map(v =>
+    v >= 40 ? CRIMSON : v >= 25 ? WARN : v >= 18 ? BLUE : SUCCESS);
+  new Chart(document.getElementById('drDemoChart'), {
+    type: 'bar',
+    data: {
+      labels: D.demographics.labels,
+      datasets: [{
+        label: 'Churn Rate',
+        data: D.demographics.churnRate,
+        backgroundColor: demoColors,
+        borderRadius: { topLeft: 0, topRight: 5, bottomLeft: 0, bottomRight: 5 },
+        borderSkipped: 'left',
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      plugins: { legend: { display: false },
+        tooltip: { backgroundColor: NAVY, titleColor: '#F0C060', bodyColor: '#fff',
+          callbacks: { label: ctx => ` Churn Rate: ${ctx.parsed.x}%` } } },
+      scales: {
+        x: { beginAtZero: true, max: 55, ticks: { callback: v => v + '%' }, grid: { color: '#F0F0F0' } },
+        y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+      }
+    }
+  });
+
+  // Radar
+  new Chart(document.getElementById('drRadarChart'), {
+    type: 'radar',
+    data: {
+      labels: D.radar.labels,
+      datasets: [
+        { label: 'Churned',  data: D.radar.churned,  fill: true,
+          backgroundColor: 'rgba(192,57,43,0.18)', borderColor: CRIMSON,
+          borderWidth: 2, pointBackgroundColor: CRIMSON, pointRadius: 4 },
+        { label: 'Retained', data: D.radar.retained, fill: true,
+          backgroundColor: 'rgba(26,35,64,0.12)', borderColor: NAVY,
+          borderWidth: 2, pointBackgroundColor: NAVY, pointRadius: 4 },
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 12 }, padding: 14 } },
+        tooltip: { backgroundColor: NAVY, titleColor: '#F0C060', bodyColor: '#fff' }
+      },
+      scales: {
+        r: {
+          min: 0, max: 100,
+          ticks: { display: false },
+          pointLabels: { font: { size: 11 } },
+          grid: { color: '#E8E8E8' },
+          angleLines: { color: '#E8E8E8' }
+        }
+      }
+    }
+  });
+
+  // Reasons horizontal bar
+  new Chart(document.getElementById('drReasonsChart'), {
+    type: 'bar',
+    data: {
+      labels: D.reasons.labels,
+      datasets: [{
+        label: 'Share of Churned',
+        data: D.reasons.pct,
+        backgroundColor: REASON_COLORS,
+        borderRadius: { topLeft: 0, topRight: 6, bottomLeft: 0, bottomRight: 6 },
+        borderSkipped: 'left',
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      plugins: { legend: { display: false },
+        tooltip: { backgroundColor: NAVY, titleColor: '#F0C060', bodyColor: '#fff',
+          callbacks: { label: ctx => ` ${ctx.parsed.x}% of churned customers` } } },
+      scales: {
+        x: { beginAtZero: true, max: 50, ticks: { callback: v => v + '%' }, grid: { color: '#F0F0F0' } },
+        y: { grid: { display: false } }
+      }
+    }
+  });
+}
+
+/* ═══════════════════════════════════════════════
+   CHARTS — RETENTION
+════════════════════════════════════════════════ */
+function buildRetentionCharts() {
+  new Chart(document.getElementById('retProjectChart'), {
+    type: 'bar',
+    data: {
+      labels: D.projectedReduction.labels,
+      datasets: [{
+        label: 'Projected Churn Rate',
+        data: D.projectedReduction.rates,
+        backgroundColor: D.projectedReduction.colors,
+        borderRadius: { topLeft: 0, topRight: 6, bottomLeft: 0, bottomRight: 6 },
+        borderSkipped: 'left',
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      plugins: { legend: { display: false },
+        tooltip: { backgroundColor: NAVY, titleColor: '#F0C060', bodyColor: '#fff',
+          callbacks: { label: ctx => ` Churn Rate: ${ctx.parsed.x}%` } } },
+      scales: {
+        x: { min: 12, max: 30, ticks: { callback: v => v + '%' }, grid: { color: '#F0F0F0' } },
+        y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+      }
+    }
+  });
+}
+
+/* ═══════════════════════════════════════════════
+   INIT
+════════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  buildSegments();
+  buildRetention();
+  buildOverviewCharts();
+  buildDriverCharts();
+  buildRetentionCharts();
+});
+</script>
+
+</body>
+</html>

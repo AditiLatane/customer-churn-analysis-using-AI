@@ -1,69 +1,12 @@
-# AI-Assisted Telecom Customer Churn Analysis
+Job Characteristics: This is an entry level professional position - employee demonstrates the ability to examine data systems and determine relationships and meaning of data, as it relates to business and system technical processes, and document accordingly. The employee should be working towards mastering knowledge and skills in one or more of the following data analysis areas: SQL language usage, data governance and security practices, ELT/ETL strategy, quality-of-data evaluation and assessment, and data requirements generation through research and discovery.
 
-## Overview
 
-This project is part of my exploration of **AI tools for data analysis** using the **IBM Telecom Customer Churn dataset**.
+Education/Work Experience: Typically requires a degree and fewer than 2 years’ experience; or no degree and 4-6 years combined education and equivalent work experience (typically 1 year experience = 1 year education).
 
-When I first analyzed this dataset as a beginner in data analytics, the entire process took **9 days**.  
-Recently, I repeated the same analysis using **AI-assisted reporting**, and the structured report was generated in **just 10 minutes** using accurate prompting.
+Independence Level/Reports to: Works under supervision on assigned tasks or portions of projects. Typically reports to Data Analyst Manager or more senior technical leader.
 
-Interestingly, the AI-generated report included **all the important KPIs and metrics** and matched **100% with the report I had created manually** earlier.
 
-This experiment highlights how AI can significantly **accelerate the data analysis workflow**.
+Our Commitment to a Culture of Inclusion & Belonging
+Ecolab is committed to fair and equal treatment of associates and applicants and furthering the principles of Equal Opportunity to Employment. We will recruit, hire, promote, transfer and provide opportunities for advancement based on individual qualifications and job performance in all matters affecting employment, compensation, benefits, working conditions, and opportunities for advancement. Ecolab will not discriminate against any associate or applicant for employment because of race, religion, color, creed, national origin,citizenship status, sex, sexual orientation, gender identity and expressions, genetic information, marital status, age, or disability.
 
----
 
-## Manual Analysis Process (9 Days)
-
-During the initial analysis, the work involved multiple steps:
-
-- **Data exploration**
-- **Data cleaning and preprocessing**
-- **Building visualizations**
-- **Identifying churn patterns**
-- **Debugging and fixing errors during the process**
-
-As a beginner, each step required careful iteration and troubleshooting, which made the full process time-consuming.
-
----
-
-## AI-Assisted Analysis (10 Minutes)
-
-Using AI with **accurate prompting**, I was able to:
-
-- Analyze the dataset
-- Identify important patterns
-- Generate a **structured analysis report**
-- Include relevant **KPIs and metrics**
-
-The generated report closely matched the insights from the manual analysis.
-
----
-
-## Key Insights from the Dataset
-
-Some important patterns observed in the churn data:
-
-- **Customers with month-to-month contracts** have higher churn rates.
-- **Higher monthly charges** show a stronger correlation with churn.
-- Customers using **multiple telecom services** are less likely to churn.
-
----
-
-## Key Learning
-
-This experiment demonstrated that AI can **dramatically speed up repetitive analytical tasks**, including:
-
-- Data exploration
-- Insight summarization
-- Report generation
-
-However, one important takeaway is:
-
-> AI can assist the process, but **understanding the data and validating insights still requires human analytical thinking**.
-
----
-
-## Project Output
-
-The **AI-generated analysis report** is shared in this repository.

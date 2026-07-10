@@ -67,3 +67,16 @@ However, one important takeaway is:
 ## Project Output
 
 The **AI-generated analysis report** is shared in this repository.
+
+---
+
+## 👩‍💻 Author & Contact
+
+**Aditi Latane**  
+*Aspiring Data Analyst*
+
+Email: aditiplatane@gmail.com
+
+[LinkedIn](https://www.linkedin.com/in/aditilataneofficial/)
+
+[Portfolio](https://aditi-latane-data-analyst-portfolio.vercel.app/)
